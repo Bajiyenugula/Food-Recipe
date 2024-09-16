@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Recipe Finder</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Arial', sans-serif;
+        }
+        .card {
+            margin: 15px 0;
+            transition: transform 0.2s;
+        }
+        .card:hover {
+            transform: scale(1.05);
+        }
+        .card img {
+            height: 200px;
+            object-fit: cover;
+        }
+        .card-title {
+            color: #007bff;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .loading-spinner.active {
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center my-4">Recipe Finder</h1>
+        <div class="row mb-4">
+            <div class="col-md-8 offset-md-2">
+                <input type="text" id="search-input" class="form-control" placeholder="Enter ingredients or dietary preference (e.g., vegan, chicken)" aria-label="Search Recipes">
+                <button id="search-btn" class="btn btn-primary mt-3 w-100">Search Recipes</button>
+                <div id="loading-spinner" class="loading-spinner mt-3 text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row" id="recipe-container">
+            <!-- Recipe cards will be appended here -->
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.getElementById('search-btn').addEventListener('click', async function() {
+            const query = document.getElementById('search-input').value.trim();
+            if (query) {
+                await fetchRecipes(query);
+            } else {
+                alert("Please enter a search query.");
+            }
+        });
+
+        async function fetchRecipes(query) {
+            const spinner = document.getElementById('loading-spinner');
+            spinner.classList.add('active');
+            try {
+                const response = await fetch(`https://api.edamam.com/search?q=${query}&app_id=b3961c53&app_key=72352561cfa0dac06383b70e830080b9`);
+                
+                if (!response.ok) {
+                    throw new Error('Network response was not ok ' + response.statusText);
+                }
+                
+                const data = await response.json();
+                displayRecipes(data);
+            } catch (error) {
+                console.error('Error fetching recipes:', error);
+                document.getElementById('recipe-container').innerHTML = '<p class="text-danger">An error occurred while fetching recipes. Please try again later.</p>';
+            } finally {
+                spinner.classList.remove('active');
+            }
+        }
+
+        function displayRecipes(data) {
+            const recipeContainer = document.getElementById('recipe-container');
+            recipeContainer.innerHTML = '';
+            
+            if (data.hits && data.hits.length > 0) {
+                data.hits.forEach(recipeData => {
+                    const recipe = recipeData.recipe;
+                    const recipeCard = `
+                        <div class="col-md-4">
+                            <div class="card">
+                                <img src="${recipe.image}" class="card-img-top" alt="${recipe.label}">
+                                <div class="card-body">
+                                    <h5 class="card-title">${recipe.label}</h5>
+                                    <p class="card-text">${recipe.calories.toFixed(2)} Calories</p>
+                                    <a href="${recipe.url}" target="_blank" class="btn btn-primary">View Recipe</a>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    recipeContainer.innerHTML += recipeCard;
+                });
+            } else {
+                recipeContainer.innerHTML = '<p class="text-danger">No recipes found. Please try another query.</p>';
+            }
+        }
+    </script>
+</body>
+</html>
